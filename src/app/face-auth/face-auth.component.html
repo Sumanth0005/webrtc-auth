@@ -1,0 +1,44 @@
+<div id="video-container" class="min-h-screen bg-gray-900 text-white">
+  <!-- Header -->
+  <header
+    class="w-full bg-black text-white px-6 py-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 sm:gap-0 shadow-md relative z-10"
+  >
+    <!-- Left Section -->
+    <div class="flex items-center gap-6">
+      <h1 class="text-2xl font-extrabold tracking-wide">🌀 MeetingRoom</h1>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex flex-col items-center justify-center p-6 gap-4">
+    <!-- Local Video Stream -->
+    <video
+      #videoElement
+      autoplay
+      muted
+      width="640"
+      height="480"
+      class="video rounded-lg shadow-lg"
+    ></video>
+
+    <!-- <img
+      class="reference"
+      src="assets/sumanth.jpg"
+      alt="Reference Face"
+      width="120"
+      style="display: none"
+    /> -->
+
+    <!-- Face Verification Button -->
+    <button
+      (click)="verify()"
+      class="verify-btn bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-full transition disabled:opacity-50"
+      [disabled]="isLoading"
+    >
+      {{ isLoading ? "Verifying" : "Join" }}
+    </button>
+
+    <!-- Result Text -->
+    <p class="result text-sm text-green-400">{{ result }}</p>
+  </main>
+</div>

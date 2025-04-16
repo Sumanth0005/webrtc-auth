@@ -7,6 +7,8 @@ import {
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { WebrtcService } from '../webrtc.service';
+import { Subscription } from 'rxjs';
+import { FaceExpresionService } from '../face-expresion.service';
 
 @Component({
   selector: 'app-videocall',
@@ -14,7 +16,7 @@ import { WebrtcService } from '../webrtc.service';
   styleUrls: ['./videocall.component.css'],
 })
 export class VideocallComponent implements OnInit, OnDestroy {
-toggleChat() {
+toggleScreenShare() {
 throw new Error('Method not implemented.');
 }
   @ViewChild('localVideo', { static: false })
@@ -24,6 +26,7 @@ throw new Error('Method not implemented.');
   remoteStreams: { id: string; stream: MediaStream }[] = [];
   peerConnections: { [id: string]: RTCPeerConnection } = {};
   users: string[] = ['You'];
+  userNames: { [id: string]: string } = {};
 
   roomId = '';
   isMicMuted = false;
@@ -31,11 +34,21 @@ throw new Error('Method not implemented.');
   copied: boolean = false;
   showLeaveConfirm = false;
   showCopiedToast = false;
-  showParticipants: any;
+  showParticipants: boolean = false;
   isScreenSharing = false;
   screenTrack: MediaStreamTrack | null = null;
 
-  constructor(private api: WebrtcService, private router: Router) {}
+  mediaRecorder!: MediaRecorder;
+  recordedChunks: Blob[] = [];
+  isRecording: boolean = false;
+  detectedExpression: string = '';
+  private subscriptions: Subscription[] = [];
+
+  constructor(
+    private api: WebrtcService,
+    private router: Router,
+    private faceservice: FaceExpresionService
+  ) {}
 
   ngOnInit(): void {
     this.api.connect();
@@ -45,40 +58,51 @@ throw new Error('Method not implemented.');
   ngOnDestroy(): void {
     this.cleanup();
     this.api.disconnect();
+    this.subscriptions.forEach((sub) => sub.unsubscribe());
+  }
+
+  toggleChat() {
+    alert('Chat feature coming soon!');
   }
 
   subscribeToSocketEvents() {
-    this.api.onUserJoined().subscribe((id: string) => {
-      this.createOffer(id);
-      this.users.push(`User ${this.users.length}`);
-    });
+    this.subscriptions.push(
+      this.api.onUserJoined().subscribe((id: string) => {
+        if (!this.peerConnections[id]) {
+          this.createOffer(id);
+          this.userNames[id] = `User ${Object.keys(this.userNames).length + 1}`;
+          this.users.push(this.userNames[id]);
+        }
+      }),
 
-    this.api.onOffer().subscribe(async ({ from, offer }) => {
-      await this.createAnswer(from, offer);
-    });
+      this.api.onOffer().subscribe(async ({ from, offer }) => {
+        await this.createAnswer(from, offer);
+      }),
 
-    this.api.onAnswer().subscribe(async ({ from, answer }) => {
-      await this.peerConnections[from]?.setRemoteDescription(
-        new RTCSessionDescription(answer)
-      );
-    });
-
-    this.api.onIceCandidate().subscribe(async ({ from, candidate }) => {
-      if (candidate && this.peerConnections[from]) {
-        await this.peerConnections[from].addIceCandidate(
-          new RTCIceCandidate(candidate)
+      this.api.onAnswer().subscribe(async ({ from, answer }) => {
+        await this.peerConnections[from]?.setRemoteDescription(
+          new RTCSessionDescription(answer)
         );
-      }
-    });
+      }),
 
-    this.api.onUserLeft().subscribe((id: string) => {
-      if (this.peerConnections[id]) {
-        this.peerConnections[id].close();
-        delete this.peerConnections[id];
-        this.remoteStreams = this.remoteStreams.filter((s) => s.id !== id);
-        this.users.pop();
-      }
-    });
+      this.api.onIceCandidate().subscribe(async ({ from, candidate }) => {
+        if (candidate && this.peerConnections[from]) {
+          await this.peerConnections[from].addIceCandidate(
+            new RTCIceCandidate(candidate)
+          );
+        }
+      }),
+
+      this.api.onUserLeft().subscribe((id: string) => {
+        if (this.peerConnections[id]) {
+          this.peerConnections[id].close();
+          delete this.peerConnections[id];
+          this.remoteStreams = this.remoteStreams.filter((s) => s.id !== id);
+          this.users = this.users.filter((user) => user !== this.userNames[id]);
+          delete this.userNames[id];
+        }
+      })
+    );
   }
 
   async createRoom() {
@@ -134,6 +158,8 @@ throw new Error('Method not implemented.');
   }
 
   createPeerConnection(peerId: string): RTCPeerConnection {
+    if (this.peerConnections[peerId]) return this.peerConnections[peerId];
+
     const pc = new RTCPeerConnection({
       iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
     });
@@ -197,88 +223,88 @@ throw new Error('Method not implemented.');
   }
 
   cleanup() {
+    if (this.isRecording) {
+      this.stopRecording();
+    }
+
     this.localStream?.getTracks().forEach((track) => track.stop());
     Object.values(this.peerConnections).forEach((pc) => pc.close());
     this.peerConnections = {};
     this.remoteStreams = [];
     this.users = ['You'];
+    this.userNames = {};
   }
 
   getRoomLink(): string {
     return `${window.location.origin}/meet/${this.roomId}`;
   }
+
   copyRoomLink() {
     const link = this.getRoomLink();
     navigator.clipboard.writeText(link).then(() => {
       this.copied = true;
       this.showCopiedToast = true;
-  
+
       setTimeout(() => {
         this.copied = false;
         this.showCopiedToast = false;
-      }, 1500);
-    }).catch(err => {
-      console.error('Failed to copy:', err);
+      }, 2000);
     });
   }
 
+  startRecording() {
+    if (!this.localStream) return;
+
+    const combinedStream = new MediaStream([
+      ...this.localStream.getTracks(),
+      ...this.remoteStreams.flatMap((s) => s.stream.getTracks()),
+    ]);
+
+    this.mediaRecorder = new MediaRecorder(combinedStream);
+    this.mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) this.recordedChunks.push(event.data);
+    };
+
+    this.mediaRecorder.onstop = () => {
+      const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `meeting-${this.roomId}.webm`;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    this.recordedChunks = [];
+    this.mediaRecorder.start();
+    this.isRecording = true;
+  }
+
+  stopRecording() {
+    if (this.mediaRecorder && this.isRecording) {
+      this.mediaRecorder.stop();
+      this.isRecording = false;
+    }
+  }
+
+  getExpressionEmoji(expression: string): string {
+    switch (expression.toLowerCase()) {
+      case 'happy':
+        return '😄';
+      case 'sad':
+        return '😢';
+      case 'angry':
+        return '😠';
+      case 'surprised':
+        return '😲';
+      case 'neutral':
+        return '😐';
+      default:
+        return '🙂';
+    }
+  }
 
   trackByStreamId(index: number, item: { id: string; stream: MediaStream }) {
     return item.id;
-  }
-
-  async toggleScreenShare() {
-    if (!this.isScreenSharing) {
-      try {
-        const screenStream = await (navigator.mediaDevices as any).getDisplayMedia({ video: true });
-        const screenVideoTrack = screenStream.getVideoTracks()[0];
-        this.screenTrack = screenVideoTrack;
-
-        Object.values(this.peerConnections).forEach((pc) => {
-          const senders = pc.getSenders().filter(sender => sender.track?.kind === 'video');
-          if (senders.length) {
-            senders[0].replaceTrack(screenVideoTrack);
-          }
-        });
-
-        const video = this.localVideoRef?.nativeElement;
-        if (video) {
-          video.srcObject = screenStream;
-          video.play();
-        }
-
-        this.isScreenSharing = true;
-
-        screenVideoTrack.onended = () => {
-          this.stopScreenShare();
-        };
-      } catch (error) {
-        console.error('Error during screen sharing:', error);
-      }
-    } else {
-      this.stopScreenShare();
-    }
-  }
-
-  stopScreenShare() {
-    if (this.screenTrack) {
-      this.screenTrack.stop();
-    }
-
-    const webcamTrack = this.localStream.getVideoTracks()[0];
-    Object.values(this.peerConnections).forEach((pc) => {
-      const senders = pc.getSenders().filter(sender => sender.track?.kind === 'video');
-      if (senders.length) {
-        senders[0].replaceTrack(webcamTrack);
-      }
-    });
-
-    const video = this.localVideoRef?.nativeElement;
-    if (video) {
-      video.srcObject = this.localStream;
-      video.play();
-    }
-
-    this.isScreenSharing = false;
   }
 }

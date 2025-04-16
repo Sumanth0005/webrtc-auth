@@ -1,74 +1,132 @@
 <!-- Header -->
-<header class="w-full bg-black text-white px-6 py-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 sm:gap-0 shadow-md relative z-10">
+<header
+  class="w-full bg-black text-white px-6 py-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 sm:gap-0 shadow-md relative z-10"
+>
   <!-- Left Section -->
   <div class="flex items-center gap-6">
-    <h1 class="text-2xl font-extrabold tracking-wide">🌀 VibeRoom</h1>
+    <h1 class="text-2xl font-extrabold tracking-wide">🌀 MeetingRoom</h1>
   </div>
 
   <!-- Right Section: Room Input + Buttons -->
-  <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
+  <div
+    class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full sm:w-auto"
+  >
     <!-- Room Input + Room Link -->
     <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-      <input [(ngModel)]="roomId"
-             class="p-2 sm:p-2.5 rounded-full bg-gray-800 border border-gray-700 text-white placeholder-gray-400 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-60"
-             placeholder="Enter or create Room ID" />
+      <input
+        [(ngModel)]="roomId"
+        class="p-2 sm:p-2.5 rounded-full bg-gray-800 border border-gray-700 text-white placeholder-gray-400 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-60"
+        placeholder="Enter or create Room ID"
+      />
 
-      <div *ngIf="roomId" class="flex items-center gap-2 text-xs sm:text-sm font-mono">
+      <div
+        *ngIf="roomId"
+        class="flex items-center gap-2 text-xs sm:text-sm font-mono"
+      >
         <span class="text-gray-400">Room:</span>
         <code class="bg-gray-700 px-2 py-1 rounded">{{ getRoomLink() }}</code>
-        <button (click)="copyRoomLink()" class="text-indigo-400 underline">Copy</button>
-        <span *ngIf="copied" class="text-green-400 text-xs transition-opacity duration-300">Copied!</span>
+        <button (click)="copyRoomLink()" class="text-indigo-400 underline">
+          Copy
+        </button>
+        <span
+          *ngIf="copied"
+          class="text-green-400 text-xs transition-opacity duration-300"
+          >Copied!</span
+        >
       </div>
     </div>
 
     <!-- Buttons -->
-    <button (click)="joinRoom()" class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-full text-sm font-medium">
+    <button
+      (click)="joinRoom()"
+      class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-full text-sm font-medium"
+    >
       Join
     </button>
-    <button (click)="toggleParticipants()" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-full text-sm font-medium">
+    <button
+      (click)="toggleParticipants()"
+      class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-full text-sm font-medium"
+    >
       Participants
     </button>
-    <button (click)="toggleChat()" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-full text-sm font-medium">
+    <button
+      (click)="toggleChat()"
+      class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-full text-sm font-medium"
+    >
       Chat
     </button>
   </div>
 </header>
 
-
 <!-- Main Layout -->
-<div class="flex flex-col sm:flex-row w-full min-h-[calc(100vh-64px)] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
-
+<div
+  class="flex flex-col sm:flex-row w-full min-h-[calc(100vh-64px)] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white"
+>
   <!-- Video & Input Section -->
   <div class="flex-1 flex flex-col items-start justify-start p-6 gap-6">
-
     <!-- Video Row: Local + Remote -->
     <div class="flex flex-wrap gap-6">
       <!-- Local Video -->
-      <div class="w-64 h-40 rounded-lg overflow-hidden bg-black border border-gray-700 shadow-lg relative">
-        <video #localVideo autoplay muted class="w-full h-full object-cover"></video>
-        <div class="absolute bottom-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">You</div>
+      <div
+        class="w-64 h-40 rounded-lg overflow-hidden bg-black border border-gray-700 shadow-lg relative"
+      >
+        <video
+          #localVideo
+          autoplay
+          muted
+          class="w-full h-full object-cover"
+        ></video>
+        <div
+          class="absolute bottom-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded"
+        >
+          You
+        </div>
       </div>
 
       <!-- Remote Videos -->
-      <div *ngFor="let remote of remoteStreams; trackBy: trackByStreamId" class="relative w-72 h-44 sm:w-64 sm:h-40 rounded-lg overflow-hidden bg-black border border-gray-700 shadow-lg">
-        <video [srcObject]="remote.stream" autoplay class="w-full h-full object-cover"></video>
-        <div class="absolute bottom-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+      <div
+        *ngFor="let remote of remoteStreams; trackBy: trackByStreamId"
+        class="relative w-72 h-44 sm:w-64 sm:h-40 rounded-lg overflow-hidden bg-black border border-gray-700 shadow-lg"
+      >
+        <video
+          [srcObject]="remote.stream"
+          autoplay
+          class="w-full h-full object-cover"
+        ></video>
+        <div
+          class="absolute bottom-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded"
+        >
           {{ remote.id }}
         </div>
+        <div class="absolute flex items-center justify-center px-2 py-1 transform -translate-x-1/2 bottom-1 left-1/2 rounded-b-xl">
+          <span *ngIf="detectedExpression" class="text-xs text-white">
+            {{ getExpressionEmoji(detectedExpression) }} {{ detectedExpression }}
+          </span>
+        </div>
       </div>
+ 
     </div>
 
     <!-- Create Button -->
-    <button (click)="createRoom()" class="ml-14 bg-emerald-500 hover:bg-emerald-600 px-6 py-2 rounded-full text-sm font-semibold">
+    <button
+      (click)="createRoom()"
+      class="ml-14 bg-emerald-500 hover:bg-emerald-600 px-6 py-2 rounded-full text-sm font-semibold"
+    >
       Create Room
     </button>
   </div>
 
   <!-- Participants Sidebar -->
-  <aside *ngIf="showParticipants" class="fixed bottom-4 right-4 sm:static sm:w-64 bg-gray-800 rounded-lg p-4 shadow-xl border border-gray-700">
+  <aside
+    *ngIf="showParticipants"
+    class="fixed bottom-4 right-4 sm:static sm:w-64 bg-gray-800 rounded-lg p-4 shadow-xl border border-gray-700"
+  >
     <h2 class="text-lg font-bold mb-3">👥 Participants</h2>
     <ul class="max-h-[60vh] overflow-y-auto text-sm space-y-2">
-      <li *ngFor="let user of users" class="bg-gray-700 rounded px-3 py-2 shadow-sm">
+      <li
+        *ngFor="let user of users"
+        class="bg-gray-700 rounded px-3 py-2 shadow-sm"
+      >
         {{ user }}
       </li>
     </ul>
@@ -76,17 +134,38 @@
 </div>
 
 <!-- Footer Controls -->
-<footer class="fixed bottom-0 left-0 w-full bg-black bg-opacity-60 border-t border-gray-700 py-4 flex justify-center gap-6 z-10">
-  <button (click)="toggleScreenShare()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-full text-sm">
-    {{ isScreenSharing ? 'Stop Sharing' : 'Share Screen' }}
+<footer
+  class="fixed bottom-0 left-0 w-full bg-black bg-opacity-60 border-t border-gray-700 py-4 flex justify-center gap-6 z-10"
+>
+  <button
+    (click)="toggleScreenShare()"
+    class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-full text-sm"
+  >
+    {{ isScreenSharing ? "Stop Sharing" : "Share Screen" }}
   </button>
-  <button (click)="toggleMic()" class="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded-full text-sm">
-    {{ isMicMuted ? 'Unmute Mic' : 'Mute Mic' }}
+  <button
+    (click)="toggleMic()"
+    class="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded-full text-sm"
+  >
+    {{ isMicMuted ? "Unmute Mic" : "Mute Mic" }}
   </button>
-  <button (click)="toggleCamera()" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-full text-sm">
-    {{ isCameraOff ? 'Turn On Camera' : 'Turn Off Camera' }}
+  <button
+    (click)="toggleCamera()"
+    class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-full text-sm"
+  >
+    {{ isCameraOff ? "Turn On Camera" : "Turn Off Camera" }}
   </button>
-  <button (click)="leaveCall()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-full text-sm">
+  <button
+    (click)="isRecording ? stopRecording() : startRecording()"
+    class="bg-pink-600 hover:bg-pink-700 px-4 py-2 rounded-full text-sm"
+  >
+    {{ isRecording ? "Stop Recording" : "Start Recording" }}
+  </button>
+
+  <button
+    (click)="leaveCall()"
+    class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-full text-sm"
+  >
     Leave Call
   </button>
 </footer>
